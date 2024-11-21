@@ -14,9 +14,9 @@ function App() {
         <Route
           path="/agent-chat"
           element={
-            <div className="h-screen">
+            <div className="h-screen p-2">
               <Header />
-              <div className="flex h-full bg- ">
+              <div className="flex gap-2  h-full ">
                 <Sidebar />
 
                 <Chat />
