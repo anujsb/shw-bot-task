@@ -1,13 +1,26 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-const AgentLogin = () => {
+const UserLogin = () => {
   const [userId, setUserId] = useState("");
+  const navigate = useNavigate();  // Initialize useNavigate hook
+
+  // Load userId from localStorage if available
+  useEffect(() => {
+    const storedUserId = localStorage.getItem("userId");
+    if (storedUserId) {
+      setUserId(storedUserId);
+    }
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Here you would typically handle the login logic
+    // Save userId to localStorage
+    localStorage.setItem("userId", userId);
+    // Log the userId (for debugging)
     console.log("Logging in with user ID:", userId);
+    // Redirect to /user-chat
+    navigate("/user-chat");
   };
 
   return (
@@ -34,14 +47,12 @@ const AgentLogin = () => {
                 className="w-full px-3 py-2 bg-[#f4f6f8] border border-[#2b82fe] rounded-md focus:outline-none focus:ring-2 focus:ring-[#2b82fe] text-[#000000]"
               />
             </div>
-            <Link to='/agent-chat'>
-              <button
-                type="submit"
-                className="w-full bg-[#2b82fe] hover:bg-[#2b82fe]/90 text-[#ffffff] font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out"
-              >
-                Log in
-              </button>
-            </Link>
+            <button
+              type="submit"
+              className="w-full bg-[#2b82fe] hover:bg-[#2b82fe]/90 text-[#ffffff] font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out"
+            >
+              Log in
+            </button>
           </form>
         </div>
       </div>
@@ -49,4 +60,4 @@ const AgentLogin = () => {
   );
 };
 
-export default AgentLogin;
+export default UserLogin;

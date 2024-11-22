@@ -1,0 +1,391 @@
+// Chat.jsx :
+
+
+import React, { useEffect, useState } from "react";
+import { CiFaceSmile } from "react-icons/ci";
+import { GoPaperclip } from "react-icons/go";
+import { IoSend } from "react-icons/io5";
+
+const Chat = () => {
+  const [messages, setMessages] = useState([]);
+  const [messageInput, setMessageInput] = useState("");
+  const [msgId, setMsgId] = useState(null);
+
+  // Fetch messages from API
+  const fetchMessages = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:3000/api/messages/messages/user/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId: "208" }),
+        }
+      );
+      const data = await response.json();
+
+      // Set the msgId dynamically from the first message
+      if (data.messages.length > 0) {
+        setMsgId(data.messages[0]._id);
+      }
+
+      // Transform the API response
+      const transformedMessages = data.messages.flatMap((msg) => {
+        const parentMessage = {
+          id: msg._id,
+          sender: "You",
+          content: msg.messageBody,
+          time: new Date(msg.timestamp).getTime()
+            ? new Date(msg.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "Invalid Time",
+          isSent: true,
+        };
+
+        const chatHistoryMessages = msg.chatHistory.map((chat) => ({
+          id: chat._id,
+          sender: chat.sender === "agent" ? "Alice" : "You",
+          content: chat.messageBody,
+          time: new Date(chat.timestamp).getTime()
+            ? new Date(chat.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "Invalid Time",
+          isSent: chat.sender !== "agent",
+        }));
+
+        return [parentMessage, ...chatHistoryMessages];
+      });
+
+      setMessages(transformedMessages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+  }, []);
+
+  // Handle message input change
+  const handleInputChange = (e) => {
+    setMessageInput(e.target.value);
+  };
+
+  // Send message function
+  const sendMessage = async () => {
+    if (!messageInput.trim() || !msgId) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/messages/${msgId}/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sender: "customer",
+            messageBody: messageInput,
+          }),
+        }
+      );
+
+      const newMessage = await response.json();
+
+      // Assuming the backend responds with the new message details
+      const transformedMessage = {
+        id: newMessage._id,
+        sender: "You",
+        content: newMessage.messageBody,
+        time: new Date(newMessage.timestamp).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        isSent: true,
+      };
+
+      // Add the new message and fetch the updated messages
+      setMessages((prevMessages) => [...prevMessages, transformedMessage]);
+      setMessageInput("");
+
+      // Re-fetch messages to keep everything synced
+      fetchMessages();
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
+  };
+
+  return (
+    <div className="flex-1 flex flex-col p-4 min-h-screen">
+      <div className="flex-1 p-4 bg-white rounded-lg overflow-y-auto">
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`mb-4 flex ${
+              message.isSent ? "justify-end" : "justify-start"
+            }`}
+          >
+            <div
+              className={`max-w-[70%] rounded-lg p-3 ${
+                message.isSent ? "bg-[#b0d1ff]" : "bg-[#f4f6f8]"
+              }`}
+            >
+              <p>{message.content}</p>
+              <p className="text-xs text-gray-500 text-right mt-1">
+                {message.time}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="p-2 bg-white flex items-center space-x-2 mt-2 rounded-lg">
+        <button size="icon">
+          <CiFaceSmile className="h-6 w-6" />
+        </button>
+        <button size="icon">
+          <GoPaperclip className="h-6 w-6" />
+        </button>
+        <input
+          value={messageInput}
+          onChange={handleInputChange}
+          className="flex-1 bg-white p-2 rounded-md"
+          placeholder="Type a message"
+        />
+        <button onClick={sendMessage} size="icon">
+          <IoSend className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default Chat;
+
+
+
+
+
+
+
+
+
+SidebarPannel.jsx :
+import { useEffect, useState } from "react";
+import { CiSearch } from "react-icons/ci";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/Tabs";
+
+const SidebarPannel = () => {
+  const [allChats, setAllChats] = useState([]); // For "All" tab
+  const [assignedChats, setAssignedChats] = useState([]); // For "Assigned to me" tab
+  const [selectedChat, setSelectedChat] = useState(null);
+
+  // Fetch all chats for 'All' tab
+  useEffect(() => {
+    const fetchAllChats = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/api/messages/messages/",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        const data = await response.json();
+
+        console.log("API Response (All Chats):", data); // Debugging line
+
+        if (data.length > 0) {
+          const formattedAllChats = data.map((msg) => {
+            const lastChat =
+              msg.chatHistory.length > 0
+                ? msg.chatHistory[msg.chatHistory.length - 1]
+                : null;
+            return {
+              id: msg._id,
+              userId: msg.userId,
+              lastMessage: lastChat ? lastChat.messageBody : msg.messageBody,
+              time: new Date(
+                lastChat ? lastChat.timestamp : msg.timestamp
+              ).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              unread: msg.status === "unread" ? 1 : 0,
+            };
+          });
+
+          setAllChats(formattedAllChats);
+        } else {
+          console.log("No chats found for All tab");
+          setAllChats([]);
+        }
+      } catch (error) {
+        console.error("Error fetching all chats:", error);
+      }
+    };
+
+    fetchAllChats();
+  }, []);
+
+  // Fetch chats assigned to the logged-in agent
+  useEffect(() => {
+    const fetchAssignedChats = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/api/messages/messages/",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        const data = await response.json();
+
+        console.log("API Response (Assigned Chats):", data); // Debugging line
+
+        if (data.length > 0) {
+          const agentName = localStorage.getItem("agentName"); // Get agent name from local storage
+          console.log("Agent Name from Local Storage:", agentName); // Debugging line
+
+          const filteredChats = data.filter(
+            (msg) => msg.agentName === agentName
+          );
+
+          console.log("Filtered Chats (Assigned):", filteredChats); // Debugging line
+
+          const formattedAssignedChats = filteredChats.map((msg) => {
+            const lastChat =
+              msg.chatHistory.length > 0
+                ? msg.chatHistory[msg.chatHistory.length - 1]
+                : null;
+            return {
+              id: msg._id,
+              userId: msg.userId,
+              lastMessage: lastChat ? lastChat.messageBody : msg.messageBody,
+              time: new Date(
+                lastChat ? lastChat.timestamp : msg.timestamp
+              ).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              unread: msg.status === "unread" ? 1 : 0,
+            };
+          });
+
+          setAssignedChats(formattedAssignedChats);
+        } else {
+          console.log("No chats found for Assigned tab");
+          setAssignedChats([]);
+        }
+      } catch (error) {
+        console.error("Error fetching assigned chats:", error);
+      }
+    };
+
+    fetchAssignedChats();
+  }, []);
+
+  // Render loading state while chats are being fetched
+  if (allChats.length === 0 && assignedChats.length === 0) {
+    return <div>Loading...</div>; // You can show a loading indicator here
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center bg-white">
+        <div className="w-full">
+          <div className="flex items-center p-2 bg-white rounded-lg w-full border">
+            <CiSearch />
+            <input
+              className="bg-white w-full border-none active:border-none"
+              placeholder="Search or start new chat"
+            />
+          </div>
+          <div className="flex gap-2 mt-2 w-full">
+            <Tabs defaultValue="All" className="w-full">
+              <TabsList className="p-1 w-full flex gap-2 bg-white rounded-lg">
+                <TabsTrigger value="All">All Chats</TabsTrigger>
+                <TabsTrigger value="Assigned to me">Assigned to me</TabsTrigger>
+              </TabsList>
+              <TabsContent value="All">
+                <div className="h-[calc(100vh-120px)] w-full bg-white rounded-lg p-2">
+                  {allChats.map((chat) => (
+                    <div
+                      key={chat.id}
+                      className={`flex items-center p-3 cursor-pointer hover:bg-[#f4f6f8] mb-1 rounded-md ${
+                        selectedChat && selectedChat.id === chat.id
+                          ? "bg-[#f4f6f8] rounded-md"
+                          : ""
+                      }`}
+                      onClick={() => setSelectedChat(chat)}
+                    >
+                      <div className="ml-3 flex-1">
+                        <div className="flex justify-between items-baseline">
+                          <span className="font-semibold">{chat.userId}</span>
+                          <span className="text-xs text-gray-500">
+                            {chat.time}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 truncate">
+                          {chat.lastMessage}
+                        </p>
+                      </div>
+                      {chat.unread > 0 && (
+                        <div className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                          {chat.unread}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+              <TabsContent value="Assigned to me">
+                <div className="h-[calc(100vh-120px)] w-full bg-white rounded-lg p-2">
+                  {assignedChats.map((chat) => (
+                    <div
+                      key={chat.id}
+                      className={`flex items-center p-3 cursor-pointer hover:bg-[#f4f6f8] mb-1 rounded-md ${
+                        selectedChat && selectedChat.id === chat.id
+                          ? "bg-[#f4f6f8] rounded-md"
+                          : ""
+                      }`}
+                      onClick={() => setSelectedChat(chat)}
+                    >
+                      <div className="ml-3 flex-1">
+                        <div className="flex justify-between items-baseline">
+                          <span className="font-semibold">{chat.userId}</span>
+                          <span className="text-xs text-gray-500">
+                            {chat.time}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 truncate">
+                          {chat.lastMessage}
+                        </p>
+                      </div>
+                      {chat.unread > 0 && (
+                        <div className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                          {chat.unread}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SidebarPannel;

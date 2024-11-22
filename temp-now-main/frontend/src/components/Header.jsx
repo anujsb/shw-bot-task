@@ -1,7 +1,7 @@
 const Header = () => {
   return (
-    <div className=" bg-white m-4 rounded-xl w-full">
-      <div className="sm:px-4 lg:px-16 sticky top-0 ">
+    <div className="w-full bg-white">
+      <div className="sm:px-4 lg:px-16 sticky top-0 w-full ">
         <div className="flex items-start p-4 gap-4">
             <div>
                 logo

@@ -6,6 +6,8 @@ import Sidebar from "./components/Sidebar";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import UserLogin from "./components/UserLogin";
 import UserChat from "./components/UserChat";
+import AgentChat from "./components/AgentChat";
+import Home from "./components/Home";
 
 function App() {
   return (
@@ -14,13 +16,23 @@ function App() {
         <Route
           path="/agent-chat"
           element={
-            <div className="h-screen p-2">
+            <div className="h-screen">
               <Header />
-              <div className="flex gap-2  h-full ">
-                <Sidebar />
+              <div className="flex h-full bg- ">
+                {/* <Sidebar /> */}
 
-                <Chat />
+                {/* <Chat /> */}
+                <AgentChat />
               </div>
+            </div>
+          }
+        />
+        {/* <Route path="/agent-work" element={<AgentChat />} /> */}
+        <Route
+          path="/"
+          element={
+            <div>
+              <Home />
             </div>
           }
         />
